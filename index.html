@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Break the Bottles!</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700&display=swap');
+
+  :root {
+    --wood-dark: #5C3317;
+    --wood-mid: #7B4A22;
+    --wood-light: #A0622A;
+    --wood-highlight: #C48040;
+    --wall: #2a1a0e;
+    --shelf-shadow: rgba(0,0,0,0.5);
+    --bottle-green: #2d8a4e;
+    --bottle-highlight: #4fc878;
+    --bottle-dark: #1a5c33;
+    --glass: rgba(180,255,200,0.25);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--wall);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Nunito', sans-serif;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* Brick wall background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 28px,
+        rgba(0,0,0,0.3) 28px,
+        rgba(0,0,0,0.3) 30px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 58px,
+        rgba(0,0,0,0.2) 58px,
+        rgba(0,0,0,0.2) 60px
+      );
+    z-index: 0;
+    opacity: 0.6;
+  }
+
+  /* Offset every other row of bricks */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(
+        0deg,
+        transparent 0px,
+        transparent 14px,
+        rgba(0,0,0,0.15) 14px,
+        rgba(0,0,0,0.15) 15px,
+        transparent 15px,
+        transparent 28px
+      );
+    z-index: 0;
+  }
+
+  #game-container {
+    position: relative;
+    z-index: 1;
+    width: min(700px, 96vw);
+  }
+
+  #title {
+    text-align: center;
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(1.8rem, 5vw, 2.8rem);
+    color: #f0c060;
+    text-shadow: 3px 3px 0 #8B4513, 5px 5px 12px rgba(0,0,0,0.8);
+    margin-bottom: 18px;
+    letter-spacing: 2px;
+  }
+
+  #score-bar {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 22px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.15rem;
+    color: #f0c060;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+  }
+
+  .score-pill {
+    background: rgba(0,0,0,0.45);
+    border: 2px solid rgba(240,192,96,0.4);
+    border-radius: 30px;
+    padding: 4px 18px;
+  }
+
+  #shelving-unit {
+    background: linear-gradient(180deg, #1a0e05 0%, #2a1608 100%);
+    border: 4px solid var(--wood-dark);
+    border-radius: 6px;
+    padding: 0;
+    box-shadow:
+      inset 0 0 30px rgba(0,0,0,0.6),
+      0 8px 32px rgba(0,0,0,0.8),
+      0 0 0 2px var(--wood-highlight);
+    overflow: hidden;
+  }
+
+  .shelf-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-around;
+    gap: 0;
+    padding: clamp(10px, 2.5vw, 18px) 16px 0;
+    position: relative;
+    width: 100%;
+  }
+
+  /* The shelf plank */
+  .shelf-plank {
+    height: 22px;
+    margin: 0 4px;
+    background: linear-gradient(
+      180deg,
+      var(--wood-highlight) 0%,
+      var(--wood-light) 30%,
+      var(--wood-mid) 70%,
+      var(--wood-dark) 100%
+    );
+    border-radius: 3px 3px 0 0;
+    box-shadow:
+      inset 0 3px 6px rgba(255,255,255,0.15),
+      0 4px 8px rgba(0,0,0,0.6);
+    position: relative;
+  }
+
+  .shelf-plank::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 40px,
+      rgba(0,0,0,0.08) 40px,
+      rgba(0,0,0,0.08) 42px
+    );
+  }
+
+  /* ===== BOTTLE ===== */
+  .bottle-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.12s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .bottle-wrap:not(.broken):hover {
+    transform: translateY(-4px) scale(1.06);
+  }
+
+  .bottle-wrap:not(.broken):active {
+    transform: scale(0.94);
+  }
+
+  /* SVG bottle */
+  .bottle-svg {
+    width: clamp(36px, 7vw, 60px);
+    height: auto;
+    filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.7));
+    transition: opacity 0.15s;
+  }
+
+  /* Broken state */
+  .bottle-wrap.broken .bottle-svg {
+    opacity: 0;
+  }
+
+  .shards-container {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    display: none;
+  }
+
+  .bottle-wrap.broken .shards-container {
+    display: block;
+  }
+
+  .shard {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0; height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 14px solid var(--bottle-green);
+    transform-origin: bottom center;
+    animation: shardFly 0.5s ease-out forwards;
+    opacity: 0;
+  }
+
+  @keyframes shardFly {
+    0%   { opacity: 1; transform: translateX(-50%) rotate(0deg) translateY(0); }
+    100% { opacity: 0; transform: translateX(calc(-50% + var(--dx))) rotate(var(--rot)) translateY(var(--dy)); }
+  }
+
+  /* Splash */
+  .splash {
+    position: absolute;
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(45,138,78,0.7), transparent 70%);
+    animation: splashOut 0.4s ease-out forwards;
+    pointer-events: none;
+    display: none;
+  }
+
+  .bottle-wrap.broken .splash {
+    display: block;
+  }
+
+  @keyframes splashOut {
+    0%   { width: 0; height: 0; opacity: 1; }
+    100% { width: 80px; height: 30px; opacity: 0; }
+  }
+
+  /* Label */
+  .bottle-wrap .label-text {
+    font-size: clamp(5px, 1.2vw, 9px);
+    color: rgba(255,255,255,0.6);
+    position: absolute;
+    top: 50%;
+    font-family: 'Fredoka One', cursive;
+    letter-spacing: 0.5px;
+    pointer-events: none;
+  }
+
+  /* ===== RESET OVERLAY ===== */
+  #reset-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s;
+  }
+
+  #reset-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  #reset-overlay h2 {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(2rem, 6vw, 3.5rem);
+    color: #f0c060;
+    text-shadow: 3px 3px 0 #8B4513;
+    margin-bottom: 16px;
+    animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  #reset-overlay p {
+    font-size: 1.1rem;
+    color: #ccc;
+    margin-bottom: 28px;
+  }
+
+  #play-again-btn {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.4rem;
+    padding: 14px 42px;
+    background: linear-gradient(135deg, #2d8a4e, #1a5c33);
+    color: #fff;
+    border: 3px solid #4fc878;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(45,138,78,0.5);
+    transition: transform 0.15s, box-shadow 0.15s;
+    animation: popIn 0.4s 0.15s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+
+  #play-again-btn:hover {
+    transform: scale(1.07);
+    box-shadow: 0 6px 28px rgba(45,138,78,0.7);
+  }
+
+  @keyframes popIn {
+    from { transform: scale(0.5); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
+  }
+
+  /* Particles from smash */
+  .particle {
+    position: fixed;
+    width: 8px;
+    height: 8px;
+    background: var(--bottle-green);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: particleFall 0.7s ease-out forwards;
+    z-index: 50;
+  }
+
+  @keyframes particleFall {
+    0%   { opacity: 1; transform: translate(0,0) scale(1); }
+    100% { opacity: 0; transform: translate(var(--pdx), var(--pdy)) scale(0.2); }
+  }
+
+  /* Music button */
+  #music-btn {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 200;
+    background: rgba(0,0,0,0.5);
+    border: 2px solid rgba(240,192,96,0.5);
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    cursor: pointer;
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+  }
+  #music-btn:hover { background: rgba(0,0,0,0.75); }
+
+  /* Progress */
+  #progress-bar-wrap {
+    margin-bottom: 14px;
+    background: rgba(0,0,0,0.4);
+    border-radius: 20px;
+    overflow: hidden;
+    height: 10px;
+    border: 1.5px solid rgba(240,192,96,0.3);
+  }
+
+  #progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #2d8a4e, #4fc878);
+    border-radius: 20px;
+    transition: width 0.4s cubic-bezier(0.34,1.2,0.64,1);
+    box-shadow: 0 0 8px rgba(79,200,120,0.7);
+  }
+</style>
+</head>
+<body>
+
+<button id="music-btn" title="Toggle music">🔊</button>
+
+<div id="game-container">
+  <div id="title">🍾 Break the Bottles!</div>
+
+  <div id="score-bar">
+    <div class="score-pill">Smashed: <span id="smashed-count">0</span></div>
+    <div class="score-pill">Total: <span id="total-count">0</span></div>
+    <div class="score-pill">Round: <span id="round-count">1</span></div>
+  </div>
+
+  <div id="progress-bar-wrap">
+    <div id="progress-bar" style="width:0%"></div>
+  </div>
+
+  <div id="shelving-unit"></div>
+</div>
+
+<div id="reset-overlay">
+  <h2>🎉 All Smashed!</h2>
+  <p>Every bottle has been destroyed!</p>
+  <button id="play-again-btn" onclick="resetGame()">Play Again!</button>
+</div>
+
+<script>
+// ===== CONFIG =====
+const SHELVES = 4;
+const BOTTLES_PER_SHELF = 5;
+const TOTAL = SHELVES * BOTTLES_PER_SHELF;
+
+let broken = 0;
+let totalSmashed = 0;
+let round = 1;
+let muted = false;
+let audioCtx = null;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+// ===== AUDIO ENGINE =====
+function playBreakSound() {
+  if (muted) return;
+  const ctx = getAudioCtx();
+  const now = ctx.currentTime;
+
+  // Noise burst for glass
+  const bufSize = ctx.sampleRate * 0.25;
+  const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufSize);
+
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = 3000 + Math.random() * 2000;
+  bp.Q.value = 0.5;
+
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.4, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+  src.connect(bp).connect(gain).connect(ctx.destination);
+  src.start(now);
+  src.stop(now + 0.25);
+
+  // Thud
+  const osc = ctx.createOscillator();
+  osc.frequency.setValueAtTime(150, now);
+  osc.frequency.exponentialRampToValueAtTime(40, now + 0.15);
+  const g2 = ctx.createGain();
+  g2.gain.setValueAtTime(0.3, now);
+  g2.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+  osc.connect(g2).connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + 0.15);
+}
+
+let bgInterval = null;
+function startBgMusic() {
+  if (muted) return;
+  stopBgMusic();
+  const ctx = getAudioCtx();
+  const notes = [130.81, 146.83, 164.81, 174.61, 196.00, 220.00, 246.94, 261.63];
+  let step = 0;
+
+  bgInterval = setInterval(() => {
+    if (muted) return;
+    const now = ctx.currentTime;
+    const freq = notes[step % notes.length];
+    step++;
+
+    const osc = ctx.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.value = freq;
+
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.07, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+    osc.connect(g).connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.35);
+  }, 350);
+}
+
+function stopBgMusic() {
+  if (bgInterval) { clearInterval(bgInterval); bgInterval = null; }
+}
+
+function playWinSound() {
+  if (muted) return;
+  const ctx = getAudioCtx();
+  const freqs = [261.63, 329.63, 392.00, 523.25, 659.25];
+  freqs.forEach((f, i) => {
+    const now = ctx.currentTime + i * 0.12;
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = f;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.25, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    osc.connect(g).connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.4);
+  });
+}
+
+// ===== BUILD BOTTLE SVG =====
+function buildBottleSVG() {
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('class', 'bottle-svg');
+  svg.setAttribute('viewBox', '0 0 40 90');
+
+  const defs = document.createElementNS(svgNS, 'defs');
+  const id = 'bg' + Math.random().toString(36).slice(2,7);
+  const grad = document.createElementNS(svgNS, 'linearGradient');
+  grad.setAttribute('id', id);
+  grad.setAttribute('x1','0%'); grad.setAttribute('y1','0%');
+  grad.setAttribute('x2','100%'); grad.setAttribute('y2','0%');
+  [['0%','#1a5c33'],['30%','#2d8a4e'],['60%','#4fc878'],['100%','#1a5c33']].forEach(([off,col])=>{
+    const s = document.createElementNS(svgNS,'stop');
+    s.setAttribute('offset',off); s.setAttribute('stop-color',col);
+    grad.appendChild(s);
+  });
+  defs.appendChild(grad);
+  svg.appendChild(defs);
+
+  // Body
+  const body = document.createElementNS(svgNS,'path');
+  body.setAttribute('d','M12 40 Q8 52 8 65 Q8 82 20 82 Q32 82 32 65 Q32 52 28 40 Z');
+  body.setAttribute('fill', `url(#${id})`);
+  svg.appendChild(body);
+
+  // Neck
+  const neck = document.createElementNS(svgNS,'rect');
+  neck.setAttribute('x','16'); neck.setAttribute('y','20');
+  neck.setAttribute('width','8'); neck.setAttribute('height','22');
+  neck.setAttribute('rx','3'); neck.setAttribute('fill',`url(#${id})`);
+  svg.appendChild(neck);
+
+  // Mouth
+  const mouth = document.createElementNS(svgNS,'rect');
+  mouth.setAttribute('x','15'); mouth.setAttribute('y','14');
+  mouth.setAttribute('width','10'); mouth.setAttribute('height','8');
+  mouth.setAttribute('rx','2'); mouth.setAttribute('fill','#1a5c33');
+  svg.appendChild(mouth);
+
+  // Highlight
+  const hi = document.createElementNS(svgNS,'ellipse');
+  hi.setAttribute('cx','26'); hi.setAttribute('cy','55');
+  hi.setAttribute('rx','3'); hi.setAttribute('ry','14');
+  hi.setAttribute('fill','rgba(180,255,200,0.2)');
+  svg.appendChild(hi);
+
+  // Label rect
+  const lbl = document.createElementNS(svgNS,'rect');
+  lbl.setAttribute('x','11'); lbl.setAttribute('y','52');
+  lbl.setAttribute('width','18'); lbl.setAttribute('height','18');
+  lbl.setAttribute('rx','2'); lbl.setAttribute('fill','rgba(255,255,220,0.12)');
+  lbl.setAttribute('stroke','rgba(255,255,200,0.2)'); lbl.setAttribute('stroke-width','0.5');
+  svg.appendChild(lbl);
+
+  // Label text
+  const txt = document.createElementNS(svgNS,'text');
+  txt.setAttribute('x','20'); txt.setAttribute('y','64');
+  txt.setAttribute('text-anchor','middle');
+  txt.setAttribute('font-size','5');
+  txt.setAttribute('fill','rgba(255,255,200,0.6)');
+  txt.setAttribute('font-family','serif');
+  txt.textContent = 'ALE';
+  svg.appendChild(txt);
+
+  // Cork
+  const cork = document.createElementNS(svgNS,'rect');
+  cork.setAttribute('x','17'); cork.setAttribute('y','11');
+  cork.setAttribute('width','6'); cork.setAttribute('height','5');
+  cork.setAttribute('rx','1'); cork.setAttribute('fill','#c8a050');
+  svg.appendChild(cork);
+
+  return svg;
+}
+
+// ===== BUILD SHARDS =====
+function buildShards() {
+  const container = document.createElement('div');
+  container.className = 'shards-container';
+  const splash = document.createElement('div');
+  splash.className = 'splash';
+  container.appendChild(splash);
+
+  const count = 8 + Math.floor(Math.random() * 6);
+  for (let i = 0; i < count; i++) {
+    const s = document.createElement('div');
+    s.className = 'shard';
+    const angle = (Math.random() * 360);
+    const dist = 20 + Math.random() * 40;
+    const dx = Math.cos(angle * Math.PI/180) * dist;
+    const dy = -(20 + Math.random() * 50);
+    const rot = (Math.random() - 0.5) * 720 + 'deg';
+    s.style.setProperty('--dx', dx + 'px');
+    s.style.setProperty('--dy', dy + 'px');
+    s.style.setProperty('--rot', rot);
+    s.style.animationDelay = (Math.random() * 0.1) + 's';
+    s.style.borderBottomColor = ['#2d8a4e','#4fc878','#1a5c33','rgba(180,255,200,0.6)'][Math.floor(Math.random()*4)];
+    container.appendChild(s);
+  }
+  return container;
+}
+
+// ===== BUILD GAME =====
+function buildGame() {
+  const unit = document.getElementById('shelving-unit');
+  unit.innerHTML = '';
+
+  for (let s = 0; s < SHELVES; s++) {
+    const row = document.createElement('div');
+    row.className = 'shelf-row';
+
+    for (let b = 0; b < BOTTLES_PER_SHELF; b++) {
+      const wrap = document.createElement('div');
+      wrap.className = 'bottle-wrap';
+      wrap.dataset.id = `${s}-${b}`;
+
+      const svg = buildBottleSVG();
+      wrap.appendChild(svg);
+      wrap.appendChild(buildShards());
+
+      wrap.addEventListener('click', () => smashBottle(wrap));
+      // Eye gaze: treat pointerenter with dwell
+      let dwellTimer = null;
+      wrap.addEventListener('pointerenter', () => {
+        dwellTimer = setTimeout(() => smashBottle(wrap), 800);
+      });
+      wrap.addEventListener('pointerleave', () => clearTimeout(dwellTimer));
+
+      row.appendChild(wrap);
+    }
+
+    unit.appendChild(row);
+
+    // Shelf plank
+    const plank = document.createElement('div');
+    plank.className = 'shelf-plank';
+    plank.style.width = '100%';
+    unit.appendChild(plank);
+  }
+}
+
+// ===== SMASH =====
+function smashBottle(wrap) {
+  if (wrap.classList.contains('broken')) return;
+  wrap.classList.add('broken');
+  broken++;
+  totalSmashed++;
+
+  playBreakSound();
+  spawnParticles(wrap);
+
+  document.getElementById('smashed-count').textContent = broken;
+  document.getElementById('total-count').textContent = totalSmashed;
+  updateProgress();
+
+  if (broken >= TOTAL) {
+    setTimeout(showWin, 600);
+  }
+}
+
+function spawnParticles(wrap) {
+  const rect = wrap.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  for (let i = 0; i < 10; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const angle = Math.random() * 360;
+    const dist = 40 + Math.random() * 80;
+    p.style.left = cx + 'px';
+    p.style.top = cy + 'px';
+    p.style.setProperty('--pdx', Math.cos(angle*Math.PI/180)*dist + 'px');
+    p.style.setProperty('--pdy', Math.sin(angle*Math.PI/180)*dist + 'px');
+    p.style.background = ['#2d8a4e','#4fc878','#a0f0c0','rgba(180,255,200,0.8)'][Math.floor(Math.random()*4)];
+    p.style.animationDelay = (Math.random()*0.15)+'s';
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 900);
+  }
+}
+
+function updateProgress() {
+  const pct = (broken / TOTAL) * 100;
+  document.getElementById('progress-bar').style.width = pct + '%';
+}
+
+function showWin() {
+  stopBgMusic();
+  playWinSound();
+  document.getElementById('reset-overlay').classList.add('active');
+}
+
+function resetGame() {
+  broken = 0;
+  round++;
+  document.getElementById('round-count').textContent = round;
+  document.getElementById('smashed-count').textContent = 0;
+  document.getElementById('reset-overlay').classList.remove('active');
+  updateProgress();
+  buildGame();
+  startBgMusic();
+}
+
+// ===== MUSIC TOGGLE =====
+document.getElementById('music-btn').addEventListener('click', () => {
+  muted = !muted;
+  document.getElementById('music-btn').textContent = muted ? '🔇' : '🔊';
+  if (muted) stopBgMusic(); else startBgMusic();
+});
+
+// ===== INIT =====
+buildGame();
+
+// Start music on first interaction
+document.body.addEventListener('pointerdown', () => {
+  startBgMusic();
+}, { once: true });
+</script>
+</body>
+</html>
