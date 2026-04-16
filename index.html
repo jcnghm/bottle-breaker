@@ -185,7 +185,7 @@
 
   /* SVG bottle */
   .bottle-svg {
-    width: clamp(36px, 7vw, 60px);
+    width: clamp(52px, 10vw, 80px);
     height: auto;
     filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.7));
     transition: opacity 0.15s;
@@ -517,7 +517,7 @@ function buildBottleSVG() {
   const svgNS = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(svgNS, 'svg');
   svg.setAttribute('class', 'bottle-svg');
-  svg.setAttribute('viewBox', '0 0 40 90');
+  svg.setAttribute('viewBox', '0 0 60 90');
 
   const defs = document.createElementNS(svgNS, 'defs');
   const id = 'bg' + Math.random().toString(36).slice(2,7);
@@ -525,7 +525,20 @@ function buildBottleSVG() {
   grad.setAttribute('id', id);
   grad.setAttribute('x1','0%'); grad.setAttribute('y1','0%');
   grad.setAttribute('x2','100%'); grad.setAttribute('y2','0%');
-  [['0%','#1a5c33'],['30%','#2d8a4e'],['60%','#4fc878'],['100%','#1a5c33']].forEach(([off,col])=>{
+
+  const bottleColors = [
+    ['#1a5c33','#2d8a4e','#4fc878'], // green
+    ['#7a1a1a','#b83232','#e05c5c'], // red
+    ['#1a2a7a','#2a4ab8','#5c82e0'], // blue
+    ['#7a6a10','#c4a820','#f0d040'], // yellow
+    ['#6a1a7a','#a032b8','#cc5ce0'], // purple
+    ['#7a3a10','#c05a18','#e88040'], // orange
+    ['#1a6a7a','#28a0b8','#50cce0'], // teal
+    ['#7a1a4a','#b82870','#e05898'], // pink
+  ];
+  const [dark, mid, light] = bottleColors[Math.floor(Math.random() * bottleColors.length)];
+
+  [[`0%`,dark],[`30%`,mid],[`60%`,light],[`100%`,dark]].forEach(([off,col])=>{
     const s = document.createElementNS(svgNS,'stop');
     s.setAttribute('offset',off); s.setAttribute('stop-color',col);
     grad.appendChild(s);
@@ -533,46 +546,46 @@ function buildBottleSVG() {
   defs.appendChild(grad);
   svg.appendChild(defs);
 
-  // Body
+  // Body — wider (6 to 54 instead of 8 to 32)
   const body = document.createElementNS(svgNS,'path');
-  body.setAttribute('d','M12 40 Q8 52 8 65 Q8 82 20 82 Q32 82 32 65 Q32 52 28 40 Z');
+  body.setAttribute('d','M16 40 Q6 52 6 65 Q6 84 30 84 Q54 84 54 65 Q54 52 44 40 Z');
   body.setAttribute('fill', `url(#${id})`);
   svg.appendChild(body);
 
   // Neck
   const neck = document.createElementNS(svgNS,'rect');
-  neck.setAttribute('x','16'); neck.setAttribute('y','20');
-  neck.setAttribute('width','8'); neck.setAttribute('height','22');
-  neck.setAttribute('rx','3'); neck.setAttribute('fill',`url(#${id})`);
+  neck.setAttribute('x','22'); neck.setAttribute('y','20');
+  neck.setAttribute('width','16'); neck.setAttribute('height','22');
+  neck.setAttribute('rx','4'); neck.setAttribute('fill',`url(#${id})`);
   svg.appendChild(neck);
 
   // Mouth
   const mouth = document.createElementNS(svgNS,'rect');
-  mouth.setAttribute('x','15'); mouth.setAttribute('y','14');
-  mouth.setAttribute('width','10'); mouth.setAttribute('height','8');
-  mouth.setAttribute('rx','2'); mouth.setAttribute('fill','#1a5c33');
+  mouth.setAttribute('x','21'); mouth.setAttribute('y','14');
+  mouth.setAttribute('width','18'); mouth.setAttribute('height','8');
+  mouth.setAttribute('rx','3'); mouth.setAttribute('fill','#1a5c33');
   svg.appendChild(mouth);
 
   // Highlight
   const hi = document.createElementNS(svgNS,'ellipse');
-  hi.setAttribute('cx','26'); hi.setAttribute('cy','55');
-  hi.setAttribute('rx','3'); hi.setAttribute('ry','14');
+  hi.setAttribute('cx','40'); hi.setAttribute('cy','58');
+  hi.setAttribute('rx','5'); hi.setAttribute('ry','16');
   hi.setAttribute('fill','rgba(180,255,200,0.2)');
   svg.appendChild(hi);
 
   // Label rect
   const lbl = document.createElementNS(svgNS,'rect');
-  lbl.setAttribute('x','11'); lbl.setAttribute('y','52');
-  lbl.setAttribute('width','18'); lbl.setAttribute('height','18');
-  lbl.setAttribute('rx','2'); lbl.setAttribute('fill','rgba(255,255,220,0.12)');
+  lbl.setAttribute('x','14'); lbl.setAttribute('y','52');
+  lbl.setAttribute('width','32'); lbl.setAttribute('height','20');
+  lbl.setAttribute('rx','3'); lbl.setAttribute('fill','rgba(255,255,220,0.12)');
   lbl.setAttribute('stroke','rgba(255,255,200,0.2)'); lbl.setAttribute('stroke-width','0.5');
   svg.appendChild(lbl);
 
   // Label text
   const txt = document.createElementNS(svgNS,'text');
-  txt.setAttribute('x','20'); txt.setAttribute('y','64');
+  txt.setAttribute('x','30'); txt.setAttribute('y','65');
   txt.setAttribute('text-anchor','middle');
-  txt.setAttribute('font-size','5');
+  txt.setAttribute('font-size','7');
   txt.setAttribute('fill','rgba(255,255,200,0.6)');
   txt.setAttribute('font-family','serif');
   txt.textContent = 'ALE';
@@ -580,9 +593,9 @@ function buildBottleSVG() {
 
   // Cork
   const cork = document.createElementNS(svgNS,'rect');
-  cork.setAttribute('x','17'); cork.setAttribute('y','11');
-  cork.setAttribute('width','6'); cork.setAttribute('height','5');
-  cork.setAttribute('rx','1'); cork.setAttribute('fill','#c8a050');
+  cork.setAttribute('x','23'); cork.setAttribute('y','11');
+  cork.setAttribute('width','14'); cork.setAttribute('height','5');
+  cork.setAttribute('rx','2'); cork.setAttribute('fill','#c8a050');
   svg.appendChild(cork);
 
   return svg;
