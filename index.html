@@ -650,7 +650,7 @@ function buildGame() {
       // Eye gaze: treat pointerenter with dwell
       let dwellTimer = null;
       wrap.addEventListener('pointerenter', () => {
-        dwellTimer = setTimeout(() => smashBottle(wrap), 800);
+        dwellTimer = setTimeout(() => smashBottle(wrap), 400);
       });
       wrap.addEventListener('pointerleave', () => clearTimeout(dwellTimer));
 
